@@ -4,9 +4,10 @@
   "description": "MCP server for safe file deletion via system trash",
   "type": "module",
   "bin": {
-    "trash-mcp": "./src/index.ts"
+    "trash-mcp": "./dist/index.js"
   },
   "scripts": {
+    "build": "tsc",
     "start": "tsx src/index.ts",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -23,6 +24,7 @@
     "trash": "^10.1.1"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"

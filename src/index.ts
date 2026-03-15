@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
