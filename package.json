@@ -1,0 +1,30 @@
+{
+  "name": "trash-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for safe file deletion via system trash",
+  "type": "module",
+  "bin": {
+    "trash-mcp": "./src/index.ts"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "mcp",
+    "trash",
+    "delete",
+    "recycle-bin"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "trash": "^10.1.1"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  }
+}
