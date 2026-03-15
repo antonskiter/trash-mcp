@@ -1,6 +1,11 @@
+#!/usr/bin/env tsx
 import path from "node:path";
 import { promises as fs } from "node:fs";
 import os from "node:os";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+import trash from "trash";
 
 // --- Path validation ---
 
@@ -99,4 +104,97 @@ export async function validatePath(
     // realpath failed but lstat succeeded — it's a broken symlink; still allow trashing it
     return { valid: true, resolvedPath: normalized };
   }
+}
+
+// --- MCP Server ---
+
+async function main() {
+  const args = process.argv.slice(2);
+
+  if (args.length === 0) {
+    console.error(
+      "Error: No allowed directories specified.\n" +
+        "Usage: trash-mcp <allowed-dir> [allowed-dir ...]\n" +
+        "Example: trash-mcp /Users/me/projects /Users/me/Downloads"
+    );
+    process.exit(1);
+  }
+
+  const allowedDirectories = await initAllowedDirectories(args);
+
+  if (allowedDirectories.length === 0) {
+    console.error("Error: None of the specified directories are accessible.");
+    process.exit(1);
+  }
+
+  console.error(
+    `trash-mcp: allowed directories: ${allowedDirectories.join(", ")}`
+  );
+
+  const server = new McpServer({
+    name: "trash-mcp",
+    version: "1.0.0",
+  });
+
+  server.tool(
+    "trash",
+    "Move files or directories to system trash (recycle bin). Never permanently deletes.",
+    {
+      paths: z
+        .array(z.string())
+        .min(1)
+        .describe("Array of absolute file/directory paths to move to trash"),
+    },
+    async ({ paths }) => {
+      const results: Array<{
+        path: string;
+        status: "trashed" | "error";
+        error?: string;
+      }> = [];
+
+      for (const filePath of paths) {
+        const validation = await validatePath(filePath, allowedDirectories);
+
+        if (!validation.valid) {
+          results.push({
+            path: filePath,
+            status: "error",
+            error: validation.error,
+          });
+          continue;
+        }
+
+        try {
+          await trash(validation.resolvedPath);
+          results.push({ path: filePath, status: "trashed" });
+        } catch (err) {
+          results.push({
+            path: filePath,
+            status: "error",
+            error: `Failed to trash: ${err instanceof Error ? err.message : String(err)}`,
+          });
+        }
+      }
+
+      const hasErrors = results.some((r) => r.status === "error");
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ results }, null, 2) }],
+        isError: hasErrors,
+      };
+    }
+  );
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+// Only run when executed directly, not when imported by tests
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+if (process.argv[1] === __filename) {
+  main().catch((err) => {
+    console.error("Fatal error:", err);
+    process.exit(1);
+  });
 }
