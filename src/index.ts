@@ -190,8 +190,13 @@ async function main() {
       }
 
       const hasErrors = results.some((r) => r.status === "error");
+      const lines = results.map((r) =>
+        r.status === "trashed"
+          ? `🗑️ ${r.path}`
+          : `❌ ${r.path} — ${r.error}`
+      );
       return {
-        content: [{ type: "text" as const, text: JSON.stringify({ results }, null, 2) }],
+        content: [{ type: "text" as const, text: lines.join("\n") }],
         isError: hasErrors,
       };
     }
