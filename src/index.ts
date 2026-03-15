@@ -56,6 +56,21 @@ export async function initAllowedDirectories(
     }
   }
 
+  // Auto-cwd: add process.cwd() only if it is already covered by an existing allowed directory
+  try {
+    const cwdResolved = path.resolve(process.cwd());
+    const cwdStat = await fs.stat(cwdResolved);
+    if (cwdStat.isDirectory()) {
+      const cwdReal = await fs.realpath(cwdResolved);
+      if (isPathWithinAllowedDirectories(cwdReal, directories)) {
+        if (!directories.includes(cwdResolved)) directories.push(cwdResolved);
+        if (!directories.includes(cwdReal)) directories.push(cwdReal);
+      }
+    }
+  } catch {
+    // cwd is inaccessible or throws — silently skip
+  }
+
   return directories;
 }
 

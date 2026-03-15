@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import os from "node:os";
@@ -111,5 +111,45 @@ describe("validatePath", () => {
     expect(result.valid).toBe(false);
     expect(result.error).toContain("outside allowed");
     await fs.unlink(linkPath);
+  });
+});
+
+describe("auto-cwd in initAllowedDirectories", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("cwd is subdirectory of allowed dir", async () => {
+    vi.spyOn(process, "cwd").mockReturnValue(subDir);
+    const dirs = await initAllowedDirectories([testDir]);
+    expect(dirs.some((d) => d === subDir || d.startsWith(subDir))).toBe(true);
+  });
+
+  it("cwd equals an allowed dir — no duplicate", async () => {
+    vi.spyOn(process, "cwd").mockReturnValue(testDir);
+    const dirs = await initAllowedDirectories([testDir]);
+    const count = dirs.filter((d) => d === testDir).length;
+    expect(count).toBe(1);
+  });
+
+  it("cwd is outside all allowed dirs — not added", async () => {
+    vi.spyOn(process, "cwd").mockReturnValue("/usr/local/somewhere");
+    const dirs = await initAllowedDirectories([testDir]);
+    expect(dirs.some((d) => d.startsWith("/usr/local/somewhere"))).toBe(false);
+  });
+
+  it("cwd is broader than allowed dirs — not added (no permission escalation)", async () => {
+    vi.spyOn(process, "cwd").mockReturnValue(testDir);
+    const dirs = await initAllowedDirectories([subDir]);
+    expect(dirs.some((d) => d === testDir)).toBe(false);
+  });
+
+  it("cwd is inaccessible / throws — no throw, returns only CLI arg dirs", async () => {
+    vi.spyOn(process, "cwd").mockImplementation(() => {
+      throw Object.assign(new Error("ENOENT: no such file"), { code: "ENOENT" });
+    });
+    const dirs = await initAllowedDirectories([testDir]);
+    expect(dirs.length).toBeGreaterThan(0);
+    expect(dirs.some((d) => d === testDir || d.includes("trash-mcp-test"))).toBe(true);
   });
 });
