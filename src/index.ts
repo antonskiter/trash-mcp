@@ -62,7 +62,10 @@ export async function initAllowedDirectories(
     const cwdStat = await fs.stat(cwdResolved);
     if (cwdStat.isDirectory()) {
       const cwdReal = await fs.realpath(cwdResolved);
-      if (isPathWithinAllowedDirectories(cwdReal, directories)) {
+      if (
+        isPathWithinAllowedDirectories(cwdReal, directories) ||
+        isPathWithinAllowedDirectories(cwdResolved, directories)
+      ) {
         if (!directories.includes(cwdResolved)) directories.push(cwdResolved);
         if (!directories.includes(cwdReal)) directories.push(cwdReal);
       }
