@@ -92,7 +92,7 @@ export async function validatePath(
   if (!isPathWithinAllowedDirectories(normalized, allowedDirectories)) {
     return {
       valid: false,
-      error: `Access denied - path outside allowed directories: ${requestedPath}`,
+      error: "Access denied — outside allowed directories",
     };
   }
 
@@ -100,7 +100,7 @@ export async function validatePath(
   try {
     await fs.lstat(normalized);
   } catch {
-    return { valid: false, error: `Path does not exist: ${requestedPath}` };
+    return { valid: false, error: "Path does not exist" };
   }
 
   // 5. Resolve symlinks and re-check
@@ -109,7 +109,7 @@ export async function validatePath(
     if (!isPathWithinAllowedDirectories(real, allowedDirectories)) {
       return {
         valid: false,
-        error: `Access denied - symlink target outside allowed directories: ${requestedPath}`,
+        error: "Access denied — symlink target outside allowed directories",
       };
     }
     return { valid: true, resolvedPath: normalized };
