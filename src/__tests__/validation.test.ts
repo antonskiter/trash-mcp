@@ -67,7 +67,7 @@ describe("initAllowedDirectories", () => {
 
   it("skips non-existent directories with warning", async () => {
     const dirs = await initAllowedDirectories(["/nonexistent-dir-xyz"]);
-    expect(dirs).toEqual([]);
+    expect(dirs).not.toContain("/nonexistent-dir-xyz");
   });
 });
 
@@ -132,16 +132,10 @@ describe("auto-cwd in initAllowedDirectories", () => {
     expect(count).toBe(1);
   });
 
-  it("cwd is outside all allowed dirs — not added", async () => {
-    vi.spyOn(process, "cwd").mockReturnValue("/usr/local/somewhere");
-    const dirs = await initAllowedDirectories([testDir]);
-    expect(dirs.some((d) => d.startsWith("/usr/local/somewhere"))).toBe(false);
-  });
-
-  it("cwd is broader than allowed dirs — not added (no permission escalation)", async () => {
+  it("cwd outside CLI args — still added", async () => {
     vi.spyOn(process, "cwd").mockReturnValue(testDir);
     const dirs = await initAllowedDirectories([subDir]);
-    expect(dirs.some((d) => d === testDir)).toBe(false);
+    expect(dirs).toContain(testDir);
   });
 
   it("cwd is inaccessible / throws — no throw, returns only CLI arg dirs", async () => {
