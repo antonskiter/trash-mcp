@@ -151,14 +151,18 @@ async function main() {
 
   server.tool(
     "trash",
-    "Move files or directories to system trash (recycle bin). Never permanently deletes.",
+    "Move files or directories to system trash (recycle bin). Never permanently deletes. Set verbose=true to see per-file results.",
     {
       paths: z
         .array(z.string())
         .min(1)
         .describe("Array of absolute file/directory paths to move to trash"),
+      verbose: z
+        .boolean()
+        .default(false)
+        .describe("Show per-file results instead of summary (default: false)"),
     },
-    async ({ paths }) => {
+    async ({ paths, verbose }) => {
       const results: Array<{
         path: string;
         status: "trashed" | "error";
@@ -190,11 +194,22 @@ async function main() {
       }
 
       const hasErrors = results.some((r) => r.status === "error");
-      const lines = results.map((r) =>
-        r.status === "trashed"
-          ? `🗑️ ${r.path}`
-          : `❌ ${r.path} — ${r.error}`
-      );
+      const errorLines = results
+        .filter((r) => r.status === "error")
+        .map((r) => `❌ ${r.path} — ${r.error}`);
+
+      let lines: string[];
+      if (verbose) {
+        lines = results.map((r) =>
+          r.status === "trashed"
+            ? `🗑️ ${r.path}`
+            : `❌ ${r.path} — ${r.error}`
+        );
+      } else {
+        const trashedCount = results.filter((r) => r.status === "trashed").length;
+        lines = [`${trashedCount} files trashed`, ...errorLines];
+      }
+
       return {
         content: [{ type: "text" as const, text: lines.join("\n") }],
         isError: hasErrors,
